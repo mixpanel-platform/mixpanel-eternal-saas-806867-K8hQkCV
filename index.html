@@ -43,12 +43,13 @@
         			  'conversion_length': time_length.MPSelect('value') * time_unit.MPSelect('value'),
         			  'num_results': max_results.MPSelect('value')};
         MP.api.custom_query(script, params).done(function(results) {
-          var res = [];
+          var res = ['this is a stupid placeholder to delete because MPTable for some reason displays the indexes'];
           if (results.length > 0) {
           	for (var i = 0; i < results[0].length; i++) {
           		res.push({'Sequence': results[0][i].key[0], 'Count': results[0][i].value});
           	}
           }
+          delete res[0];
           eventTable.MPTable('setData', res);
         });
       }
