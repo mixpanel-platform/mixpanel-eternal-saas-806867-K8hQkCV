@@ -304,6 +304,7 @@
 		     'end_event': end_event
 		 };
 		 MP.api.custom_query(script, params).done(function(results) {
+		     console.log(results);
 		     var res = ['this is a placeholder to delete because MPTable displays the indexes for some reason'];
 		     if (results.length > 0) {
 		         var str = '';
@@ -319,6 +320,7 @@
 		         }
 		     }
 		     delete res[0];
+		     console.log(res);
 		     eventTable.MPTable('setData', res);
 		 });
 		}
