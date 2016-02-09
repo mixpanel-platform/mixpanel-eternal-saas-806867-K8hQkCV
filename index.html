@@ -150,11 +150,11 @@
       </div>
       <div class="dropdown-section">
       	<div class="select left">
-      		<div class="dropdown-label">Optional End Event:</div>
+      		<div class="dropdown-label">End Event:</div>
       		<div id="eventSelect"></div>
       	</div>
       	<div class="select right">
-      		<div class="dropdown-label">Group by Property:</div>
+      		<div class="dropdown-label">Property:</div>
       		<div id="propSelect"></div>
       	</div>
       </div>
@@ -231,46 +231,46 @@
 		property.MPPropertySelect('setEvent');
 
 		function runQuery() {
-		 var from_date = dateSelect.MPDatepicker('value').from.toISOString().slice(0, -14);
-		 var to_date = dateSelect.MPDatepicker('value').to.toISOString().slice(0, -14);
-		 var event_count = min_sequence_length.MPSelect('value');
-		 var conversion_length = time_length.MPSelect('value') * time_unit.MPSelect('value');
-		 var num_results = max_results.MPSelect('value');
-		 var end_event = finish_event.MPEventSelect('value');
-		 var prop = property.MPPropertySelect('value');
-		 $('.select_button:not(#eventSelect > .select_button)').addClass('small');
-		 $('.select_menu:not(#eventSelect > .select_menu)').addClass('small');
-		 $('#numResultsSelect, #minLengthSelect, #timeSelect, #unitSelect').css({'display': 'inline-block', 'max-width': '50px'})
-		 var params = {
-		     'from_date': from_date,
-		     'to_date': to_date,
-		     'event_count': event_count,
-		     'conversion_length': conversion_length,
-		     'num_results': num_results,
-		     'end_event': end_event,
-		     'property': prop
-		 };
-		 MP.api.custom_query(script, params).done(function(results) {
-		 	console.log(results);
-		    var res = ['this is a placeholder to delete because MPTable displays the indexes for some reason'];
-		    if (results.length > 0) {
-		        for (var i = 0; i < num_results; i++) {
-		        	 var obj = {};
-		             for (var j = 0; j < results.length; j++) {
-		             	if (results[j].value[i]) {
-		             		obj[results[j].key[0]] = results[j].value[i].count + ': ' + results[j].value[i].sequence.toString();
-		             	}
-		             	else {
-		             		obj[results[j].key[0]] = 'no more flows';
-		             	}
-		             }
-		             res.push(obj);
-		             obj = {};
-		         }
-		     }
-		     delete res[0];
-		     eventTable.MPTable('setData', res);
-		 });
+			var from_date = dateSelect.MPDatepicker('value').from.toISOString().slice(0, -14);
+			var to_date = dateSelect.MPDatepicker('value').to.toISOString().slice(0, -14);
+			var event_count = min_sequence_length.MPSelect('value');
+			var conversion_length = time_length.MPSelect('value') * time_unit.MPSelect('value');
+			var num_results = max_results.MPSelect('value');
+			var end_event = finish_event.MPEventSelect('value');
+			var prop = property.MPPropertySelect('value');
+			$('.select_button:not(#eventSelect > .select_button, #propSelect > .select_button)').addClass('small');
+			$('.select_menu:not(#eventSelect > .select_menu, #propSelect > .select_menu)').addClass('small');
+			$('#numResultsSelect, #minLengthSelect, #timeSelect, #unitSelect').css({'display': 'inline-block', 'max-width': '50px'})
+			var params = {
+			    'from_date': from_date,
+			    'to_date': to_date,
+			    'event_count': event_count,
+			    'conversion_length': conversion_length,
+			    'num_results': num_results,
+			    'end_event': end_event,
+			    'property': prop
+			};
+			MP.api.custom_query(script, params).done(function(results) {
+			 	console.log(results);
+			    var res = ['this is a placeholder to delete because MPTable displays the indexes for some reason'];
+			    if (results.length > 0) {
+			        for (var i = 0; i < num_results; i++) {
+			        	var obj = {};
+			            for (var j = 0; j < results.length; j++) {
+			             	if (results[j].value[i]) {
+			             		obj[results[j].key[0]] = results[j].value[i].count + ': ' + results[j].value[i].sequence.toString();
+			             	}
+			             	else {
+			             		obj[results[j].key[0]] = 'no more flows';
+			             	}
+			            }
+			            res.push(obj);
+			            obj = {};
+			        }
+			    }
+			    delete res[0];
+			    eventTable.MPTable('setData', res);
+			});
 		}
 		runQuery();
 		dateSelect.on('change', function() {
