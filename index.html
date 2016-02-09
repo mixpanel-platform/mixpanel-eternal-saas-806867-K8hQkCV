@@ -262,6 +262,9 @@
 		             	if (results[j].value[i]) {
 		             		obj[results[j].key[0]] = results[j].value[i].count + ': ' + results[j].value[i].sequence.toString();
 		             	}
+		             	else {
+		             		obj[results[j].key[0]] = 'no more flows';
+		             	}
 		             }
 		             res.push(obj);
 		             obj = {};
