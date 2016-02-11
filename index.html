@@ -37,13 +37,11 @@
   			width: 430px;
   		}
   		.select.left {
-  			left: 0px;
+  			left: 15px;
   			position: relative;
   			margin: 10px 0;
   		}
   		.select.right {
-  			margin-left: 187px;
-  			margin: 10px 0;
   			display: inline-block;
   			position: relative;
   			width: 300px;
@@ -291,7 +289,6 @@
 		 runQuery();
 		});
 		finish_event.on('change', function(e, selection) {
-		 property.MPPropertySelect('setEvent', finish_event.MPEventSelect('value'));
 		 runQuery();
 		});
 		property.on('change', function(e, selection) {
