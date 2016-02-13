@@ -44,7 +44,7 @@
   		.select.right {
   			display: inline-block;
   			position: relative;
-  			width: 300px;
+  			width: 500px;
   		}
   		#dateSelect {
   			display: inline-block;
@@ -131,16 +131,22 @@
 		}
     </script>
   	<div class="mixpanel-platform-section">
-  	  <div class="header" style="display:flex;justify-content:center;align-items:center;width:100%;">Most Common User Flows</div>
+  	  <div class="header" style="display:flex;justify-content:center;align-items:center;width:50%;">Most Common User Flows</div>
   	  <div class="dropdown-section">
   	  	<div class="select left">
+      		<div class="dropdown-label">Date range:</div>
+      		<div id="dateSelect"></div>
+      	</div>	
+      </div>
+      <div class="dropdown-section">
+      	<div class="select left">
       		<div class="dropdown-label" id="sessionlength">Session length:</div>
       		<div id="timeSelect"></div>
       		<div id="unitSelect"></div>
       	</div>
       	<div class="select right">
-      		<div class="dropdown-label">Date range:</div>
-      		<div id="dateSelect"></div>
+      		<div class="dropdown-label">Start Event:</div>
+      		<div id="startEventSelect"></div>
       	</div>
       </div>
       <div class="dropdown-section">
@@ -149,22 +155,16 @@
       		<div id="minLengthSelect"></div>
       	</div>
       	<div class="select right">
-      		<div class="dropdown-label">Number of results to show:</div>
-      		<div id="numResultsSelect"></div>
-      	</div>
-      </div>
-      <div class="dropdown-section">
-      	<div class="select left">
-      		<div class="dropdown-label">Start Event:</div>
-      		<div id="startEventSelect"></div>
-      	</div>
-      	<div class="select right">
       		<div class="dropdown-label">End Event:</div>
       		<div id="eventSelect"></div>
-      	</div>
+      	</div>     	
       </div>
       <div class="dropdown-section">
       	<div class="select left">
+      		<div class="dropdown-label">Number of results to show:</div>
+      		<div id="numResultsSelect"></div>  		
+      	</div>
+      	<div class="select right">
       		<div class="dropdown-label">Property:</div>
       		<div id="propSelect"></div>
       	</div>
@@ -175,16 +175,14 @@
 		var script = document.getElementById('query').innerHTML;
 		var eventTable = $('#table').MPTable({showPercentages: false, firstColHeader: 'Rank'});
 		var dateSelect = $('#dateSelect').MPDatepicker();
-		function items() {
-			return item_list = _.map(arguments, function(item) {return {label: String(item), value: item};})
-		}
+		var items = function() {return item_list = _.map(arguments, function(item) {return {label: String(item), value: item};})}
 		var time_length = $('#timeSelect').MPSelect({items: items(1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30)});
 		var time_unit = $('#unitSelect').MPSelect({items:[{label:'hours',value:3600000},{label:'days',value:86400000},{label:'weeks',value:604800000},{label:'months',value:2592000000}]});
 		time_unit.val(86400000);
 		var min_sequence_length = $('#minLengthSelect').MPSelect({items: items(1,2,3,4,5)});
 		min_sequence_length.val(2);
 		var max_results = $('#numResultsSelect').MPSelect({items: items(2, 5, 10, 15, 50)});
-		max_results.val(10);
+		max_results.val(5);
 		var start_event = $('#startEventSelect').MPEventSelect();
 		var finish_event = $('#eventSelect').MPEventSelect();
 		var property = $('#propSelect').MPPropertySelect();
@@ -204,7 +202,6 @@
 			    'property': property.MPPropertySelect('value')
 			};
 			MP.api.custom_query(script, params).done(function(results) {
-			    debugger;
 			    var res = [];
 			    if (results.length > 0) {
 			        res = _.map(results[0], function(item) {return item})
