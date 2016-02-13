@@ -51,7 +51,7 @@
   			right: 15px;
   			vertical-align: middle;
   		}
-  		#unitSelect {
+  		#unitSelect, #maxLengthSelect {
   			margin-left: -50px;
   		}
   	</style>
@@ -92,7 +92,8 @@
 		    .filter(function(item) {
 		        return !((params.start_event && item.sequence[0] != params.start_event)
 		               ||(params.end_event && item.sequence[item.sequence.length - 1] != params.end_event)
-		               ||(item.sequence.length < params.event_count))
+		               ||(item.sequence.length < params.min_length)
+		               ||(item.sequence.length > params.max_length))
 		    })
 		    .groupBy([function(item) {return item.sequence;}, function(item) {return item.group;}], mixpanel.reducer.count())
 		    .groupBy([function(item) {return item.key[item.key.length - 1];}], mixpanel.reducer.top(params.num_results))
@@ -140,7 +141,7 @@
       </div>
       <div class="dropdown-section">
       	<div class="select left">
-      		<div class="dropdown-label" id="sessionlength">Session length:</div>
+      		<div class="dropdown-label">Session length:</div>
       		<div id="timeSelect"></div>
       		<div id="unitSelect"></div>
       	</div>
@@ -151,8 +152,9 @@
       </div>
       <div class="dropdown-section">
       	<div class="select left">
-      		<div class="dropdown-label">Minimum sequence length:</div>
+      		<div class="dropdown-label">Count between:</div>
       		<div id="minLengthSelect"></div>
+      		<div id="maxLengthSelect"></div>
       	</div>
       	<div class="select right">
       		<div class="dropdown-label">End Event:</div>
@@ -179,8 +181,10 @@
 		var time_length = $('#timeSelect').MPSelect({items: items(1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30)});
 		var time_unit = $('#unitSelect').MPSelect({items:[{label:'hours',value:3600000},{label:'days',value:86400000},{label:'weeks',value:604800000},{label:'months',value:2592000000}]});
 		time_unit.val(86400000);
-		var min_sequence_length = $('#minLengthSelect').MPSelect({items: items(1,2,3,4,5)});
+		var min_sequence_length = $('#minLengthSelect').MPSelect({items: items(1,2,3,4,5,6,7,8,9,10)});
+		var max_sequence_length = $('#maxLengthSelect').MPSelect({items: items(1,2,3,4,5,6,7,8,9,10)});
 		min_sequence_length.val(2);
+		max_sequence_length.val(8);
 		var max_results = $('#numResultsSelect').MPSelect({items: items(2, 5, 10, 15, 50)});
 		max_results.val(5);
 		var start_event = $('#startEventSelect').MPEventSelect();
@@ -190,11 +194,11 @@
 		function runQuery() {
 			$('.select_button:not(#eventSelect > .select_button, #propSelect > .select_button, #startEventSelect > .select_button)').addClass('small');
 			$('.select_menu:not(#eventSelect > .select_menu, #propSelect > .select_menu, #startEventSelect > .select_menu)').addClass('small');
-			$('#numResultsSelect, #minLengthSelect, #timeSelect, #unitSelect').css({'display': 'inline-block', 'max-width': '50px'})
+			$('#numResultsSelect, #minLengthSelect, #timeSelect, #unitSelect, #maxLengthSelect').css({'display': 'inline-block', 'max-width': '50px'})
 			var params = {
 			    'from_date': dateSelect.MPDatepicker('value').from.toISOString().slice(0, -14),
 			    'to_date': dateSelect.MPDatepicker('value').to.toISOString().slice(0, -14),
-			    'event_count': min_sequence_length.MPSelect('value'),
+			    'min_length': min_sequence_length.MPSelect('value'),
 			    'conversion_length': time_length.MPSelect('value') * time_unit.MPSelect('value'),
 			    'num_results': max_results.MPSelect('value'),
 			    'start_event': start_event.MPEventSelect('value'),
