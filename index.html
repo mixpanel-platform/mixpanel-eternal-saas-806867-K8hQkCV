@@ -199,6 +199,7 @@
 			    'from_date': dateSelect.MPDatepicker('value').from.toISOString().slice(0, -14),
 			    'to_date': dateSelect.MPDatepicker('value').to.toISOString().slice(0, -14),
 			    'min_length': min_sequence_length.MPSelect('value'),
+			    'max_length': max_sequence_length.MPSelect('value'),
 			    'conversion_length': time_length.MPSelect('value') * time_unit.MPSelect('value'),
 			    'num_results': max_results.MPSelect('value'),
 			    'start_event': start_event.MPEventSelect('value'),
@@ -226,6 +227,9 @@
 		 runQuery();
 		});
 		min_sequence_length.on('change', function(e, selection) {
+		 runQuery();
+		});
+		max_sequence_length.on('change', function(e, selection) {
 		 runQuery();
 		});
 		max_results.on('change', function(e, selection) {
