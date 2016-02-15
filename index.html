@@ -93,29 +93,10 @@
 	        })
 	        .groupBy([function(item) {return item.sequence;}, function(item) {return item.group;}], mixpanel.reducer.count())
 	        .groupBy([function(item) {return item.key[item.key.length - 1];}], mixpanel.reducer.top(params.num_results))
-	        .reduce(function(accumulators, items) {
-	            var results = [];
-	            for (var i = 0; i < params.num_results; i++)
-	                results.push({});
-	            _.each(accumulators, function(accumulator) {  //go through all accumulators
-	                _.each(accumulator, function(result, i) { //go through all results in a specific accumulator
-	                    _.each(result, function(val, key) {   //go through all values in each result
-	                        results[i][key] = val;            //set the corresponding value in the results object
-	                    });
-	                });
-	            });
-	            _.each(items, function(item) {
-	                var propval = item.key[0];
-	                for (i = 0; i < params.num_results; i++) {
-	                    var result = 'no flow';
-	                    if (item.value[i]) {
-	                        item.value[i].key.pop();
-	                        result = item.value[i].value + ': ' + item.value[i].key;
-	                    }
-	                    results[i][propval] = result;
-	                }
-	            });
-	            return results;
+	        .map(function(item) {
+	            var removeLast = function(result) {result.key.pop();};
+	            _.each(item.value, removeLast);
+	            return item;
 	        });
 	    }
     </script>
@@ -195,10 +176,24 @@
 			    'property': property.MPPropertySelect('value')
 			};
 			MP.api.custom_query(script, params).done(function(results) {
-				var res = _.map(results[0], function(item) {return item});
-				console.log(res);
-			    res.unshift(''); // these two lines are in here
-			    delete res[0];   // becuase of a quirk in MPTable
+				var res = [];
+				if (results.length > 0) {
+					for (var i = 0; i < params.num_results; i++) {
+						res.push({});
+					}
+					_.each(results, function(item) {
+		                var propval = item.key[0];
+		                for (i = 0; i < params.num_results; i++) {
+		                    var result = 'no flow';
+		                    if (item.value[i])
+		                        result = item.value[i].value + ': ' + item.value[i].key;
+		                    res[i][propval] = result;
+		                }
+		            });
+					console.log(res);
+					res.unshift('');
+					delete res[0];
+				}
 			    eventTable.MPTable('setData', res);
 			});
 		}
