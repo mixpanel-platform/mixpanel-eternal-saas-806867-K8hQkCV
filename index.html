@@ -83,7 +83,7 @@
 	                               .filter(sequenceFilter)
 	                               .pluck('name')
 	                               .value(),
-	                    group: state.propval? state.propval : 'Overall'};
+	                    group: state.propval? state.propval : 'No Property'};
 	        })
 	        .filter(function(item) {
 	            return !((params.start_event && item.sequence[0] != params.start_event)
