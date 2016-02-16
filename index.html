@@ -77,7 +77,7 @@
 	        })
 	        .map(function(item) {
 	            var state = item.value;
-	            var end_time = state.sequence[state.sequence.length - 1].time;
+	            var end_time = state.sequence.length > 0 ? state.sequence[state.sequence.length - 1].time : false;
 	            var sequenceFilter = function(item) {return end_time - item.time < params.conversion_length;};
 	            return {sequence: _.chain(state.sequence)
 	                               .filter(sequenceFilter)
@@ -195,7 +195,7 @@
 					delete res[0];
 				}
 				console.log(res);
-				eventTable.MPTable('setData', res);
+			    eventTable.MPTable('setData', res);
 			});
 		}
 		runQuery();
