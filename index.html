@@ -181,7 +181,7 @@
 					for (var i = 0; i < params.num_results; i++) {
 						res.push({});
 					}
-					_.each(results, function(item) {
+					var resultMapper = function(item) {
 		                var propval = item.key[0];
 		                for (i = 0; i < params.num_results; i++) {
 		                    var result = 'no flow';
@@ -189,7 +189,8 @@
 		                        result = item.value[i].value + ': ' + item.value[i].key;
 		                    res[i][propval] = result;
 		                }
-		            });
+		            };
+		            _.each(results, resultMapper);
 					console.log(res);
 					res.unshift('');
 					delete res[0];
