@@ -182,7 +182,11 @@
   	  	<div class="select left">
       		<div class="dropdown-label">Date range:</div>
       		<div id="dateSelect"></div>
-      	</div>	
+      	</div>
+      	<div class="select right">
+      		<div class="dropdown-label">Start Event:</div>
+      		<div id="startEventSelect"></div>
+      	</div>
       </div>
       <div class="dropdown-section">
       	<div class="select left">
@@ -191,8 +195,8 @@
       		<div id="unitSelect"></div>
       	</div>
       	<div class="select right">
-      		<div class="dropdown-label">Start Event:</div>
-      		<div id="startEventSelect"></div>
+      		<div class="dropdown-label">End Event:</div>
+      		<div id="eventSelect"></div>
       	</div>
       </div>
       <div class="dropdown-section">
@@ -202,8 +206,8 @@
       		<div id="maxLengthSelect"></div>
       	</div>
       	<div class="select right">
-      		<div class="dropdown-label">End Event:</div>
-      		<div id="eventSelect"></div>
+      		<div class="dropdown-label">Property:</div>
+      		<div id="propSelect"></div>
       	</div>     	
       </div>
       <div class="dropdown-section">
@@ -212,8 +216,8 @@
       		<div id="numResultsSelect"></div>  		
       	</div>
       	<div class="select right">
-      		<div class="dropdown-label">Property:</div>
-      		<div id="propSelect"></div>
+      		<div class="dropdown-label">People Property:</div>
+      		<div id="peoplePropSelect"></div>
       	</div>
       </div>
     </div>
@@ -236,9 +240,10 @@
 		var finish_event = $('#eventSelect').MPEventSelect();
 		var property = $('#propSelect').MPPropertySelect();
 		property.MPPropertySelect('setEvent');
+		var peopleProperty = 0;
 		function runQuery() {
-			$('.select_button:not(#eventSelect > .select_button, #propSelect > .select_button, #startEventSelect > .select_button)').addClass('small');
-			$('.select_menu:not(#eventSelect > .select_menu, #propSelect > .select_menu, #startEventSelect > .select_menu)').addClass('small');
+			$('.select_button:not(#eventSelect > .select_button, #propSelect > .select_button, #startEventSelect > .select_button, #peoplePropSelect > .select_button)').addClass('small');
+			$('.select_menu:not(#eventSelect > .select_menu, #propSelect > .select_menu, #startEventSelect > .select_menu, #peoplePropSelect > .select_menu)').addClass('small');
 			$('#numResultsSelect, #minLengthSelect, #timeSelect, #unitSelect, #maxLengthSelect').css({'display': 'inline-block', 'max-width': '50px'})
 			var params = {
 			    'from_date': dateSelect.MPDatepicker('value').from.toISOString().slice(0, -14),
@@ -250,7 +255,7 @@
 			    'start_event': start_event.MPEventSelect('value'),
 			    'end_event': finish_event.MPEventSelect('value'),
 			    'property': property.MPPropertySelect('value'),
-			    //'people_prop' : 'Company'
+			    'people_prop' : peopleProperty == 0? null: peopleProperty.MPSelect('value')
 			};
 			MP.api.custom_query(script, params).done(function(results) {
 				console.log(results);
@@ -276,6 +281,12 @@
 			});
 		}
 		runQuery();
+		MP.api.query('/api/2.0/engage/properties').done(function(json) {
+    		var items = _.map(json.results, function(item, key) {return {label: key, value: key};})
+    		items.unshift({label:'-- Select a people property --', value: undefined});
+    		peopleProperty = $('#peoplePropSelect').MPSelect({items: items});
+    		peopleProperty.on('change', function() {runQuery();});
+    	});
 		dateSelect.on('change', function() {runQuery();});
 		time_length.on('change', function(e, selection) {runQuery();});
 		time_unit.on('change', function(e, selection) {runQuery();});
