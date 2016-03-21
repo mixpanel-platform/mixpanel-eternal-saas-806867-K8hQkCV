@@ -7,9 +7,6 @@
   </head>
   <body class="mixpanel-platform-body">
   	<style>
-  		a {
-  			text-decoration: none;
-  		}
   		.header {
   			font-size: 20px;
   			color: gray;
@@ -27,25 +24,6 @@
   			max-width: 96px;
   			min-width: 0;
   		}
-/*  		.dropdown-label {
-  			vertical-align: middle;
-  			position: relative;
-  			display: inline-block;
-  		}*/
-/*  		.select {
-  			display: inline-block;
-  			width: 430px;
-  		}*/
-/*  		.select.left {
-  			left: 15px;
-  			position: relative;
-  			margin: 10px 0;
-  		}
-  		.select.right {
-  			display: inline-block;
-  			position: relative;
-  			width: 300px;
-  		}*/
   		#dateSelect {
   			display: inline-block;
   			right: 15px;
@@ -54,9 +32,6 @@
   		#unitSelect, #maxLengthSelect {
   			margin-left: -44px;
   		}
-  		/*table, th, td {*/
-  		/*	border: 1px solid black;*/
-  		/*}*/
   	</style>
   	<script id='query'>
 		function filterOutPeopleWithNoEvents(item) {
@@ -97,8 +72,6 @@
 		    _.chain(events)
 		     .filter(function(event) {return !_.contains(badEvents, event.name);})
 		     .each(stateUpdater);
-		    // var filteredEvents = _.filter(events, function(event) {return !_.contains(badEvents, event.name);})
-		    // _.each(events, stateUpdater);
 		    if (!params.property)
 		        state.propval = 'No Property';
 		    return state;
@@ -275,50 +248,6 @@
   			</td>
   		</tr>
   	</table>
-<!-- 
-  	  <div class="header" style="display:flex;justify-content:center;align-items:center;width:695px;">Most Common User Flows</div>
-  	  <div class="dropdown-section">
-  	  	<div class="select left">
-      		<div class="dropdown-label">Date range:</div>
-      		<div id="dateSelect"></div>
-      	</div>
-      	<div class="select right">
-      		<div class="dropdown-label">Start Event:</div>
-      		<div id="startEventSelect"></div>
-      	</div>
-      </div>
-      <div class="dropdown-section">
-      	<div class="select left">
-      		<div class="dropdown-label">Session length:</div>
-      		<div id="timeSelect"></div>
-      		<div id="unitSelect"></div>
-      	</div>
-      	<div class="select right">
-      		<div class="dropdown-label">End Event:</div>
-      		<div id="eventSelect"></div>
-      	</div>
-      </div>
-      <div class="dropdown-section">
-      	<div class="select left">
-      		<div class="dropdown-label">Sequence Length (# events):</div>
-      		<div id="minLengthSelect"></div>
-      		<div id="maxLengthSelect"></div>
-      	</div>
-      	<div class="select right">
-      		<div class="dropdown-label">Property:</div>
-      		<div id="propSelect"></div>
-      	</div>     	
-      </div>
-      <div class="dropdown-section">
-      	<div class="select left">
-      		<div class="dropdown-label">Number of results to show:</div>
-      		<div id="numResultsSelect"></div>  		
-      	</div>
-      	<div class="select right">
-      		<div class="dropdown-label">People Property: (overwrites property)</div>
-      		<div id="peoplePropSelect"></div>
-      	</div>
-      </div> -->
     </div>
     <div id="table"></div>
     <script>
