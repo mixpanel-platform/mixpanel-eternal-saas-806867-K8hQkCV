@@ -17,26 +17,26 @@
   			margin-bottom: 15px;
   		}
   		.mixpanel-platform-select.event_selector_theme {
-  			max-width: 50px;
+  			max-width: 53px;
   		}
   		.mixpanel-platform-select.event_selector_theme .select_button.small, .mixpanel-platform-input-select {
-  			max-width: 50px;
+  			max-width: 53px;
   			min-width: 0;
   		}
   		.mixpanel-platform-select.event_selector_theme .select_button.active+.select_menu.small {
   			max-width: 96px;
   			min-width: 0;
   		}
-  		.dropdown-label {
+/*  		.dropdown-label {
   			vertical-align: middle;
   			position: relative;
   			display: inline-block;
-  		}
-  		.select {
+  		}*/
+/*  		.select {
   			display: inline-block;
   			width: 430px;
-  		}
-  		.select.left {
+  		}*/
+/*  		.select.left {
   			left: 15px;
   			position: relative;
   			margin: 10px 0;
@@ -45,15 +45,18 @@
   			display: inline-block;
   			position: relative;
   			width: 300px;
-  		}
+  		}*/
   		#dateSelect {
   			display: inline-block;
   			right: 15px;
   			vertical-align: middle;
   		}
   		#unitSelect, #maxLengthSelect {
-  			margin-left: -50px;
+  			margin-left: -44px;
   		}
+/*  		table, th, td {
+  			border: 1px solid black;
+  		}*/
   	</style>
   	<script id='query'>
 		function filterOutPeopleWithNoEvents(item) {
@@ -72,8 +75,10 @@
 		            state.done = event.name == params.end_event;
 		        }
 		    };
-		    var filteredItems = _.filter(items, function(item) {return item.event.name != '$campaign_delivery';});
-		    _.each(filteredItems, stateUpdater);
+		    var badEvents = params.bad_events? params.bad_events : [];
+		    _.chain(items)
+		     .filter(function(item) {return !_.contains(badEvents, item.event.name);})
+		     .each(stateUpdater);
 		    return state;
 		}
 
@@ -88,8 +93,12 @@
 		            state.done = event.name == params.end_event;
 		        }
 		    };
-		    var filteredEvents = _.filter(events, function(event) {return event.name != '$campaign_delivery';});
-		    _.each(filteredEvents, stateUpdater);
+		    var badEvents = params.bad_events? params.bad_events : [];
+		    _.chain(events)
+		     .filter(function(event) {return !_.contains(badEvents, event.name);})
+		     .each(stateUpdater);
+		    // var filteredEvents = _.filter(events, function(event) {return !_.contains(badEvents, event.name);})
+		    // _.each(events, stateUpdater);
 		    if (!params.property)
 		        state.propval = 'No Property';
 		    return state;
@@ -124,13 +133,13 @@
 		function theTop(n) {
 		    return function(accumulators, items) {
 		        var count = 0;
-		        var countAdder = function(value) {count += value};
+		        var countAdder = function(item) {count += item};
 		        _.chain(items)
 		         .pluck('value')
-		         .each(countAdder);
+		         .each(countAdder)
 		        _.chain(accumulators)
 		         .pluck('count')
-		         .each(countAdder);
+		         .each(countAdder)
 		        return {results: _.pluck(accumulators, 'results')
 		                          .reduce(function(a,b) {return a.concat(b);},[])
 		                          .concat(items)
@@ -179,7 +188,94 @@
 		    }
 		}
   	</script>
-  	<div class="mixpanel-platform-section">
+  	<div class="mixpanel-platform-section" style='width:945px'>
+  	<table>
+  		<tr>
+  			<td class='header' colspan='6' align="center">
+  				Most Common User Flows
+  			</td>
+  		</tr>
+  		<tr>
+  			<td colspan='6' align="center">
+  				<font color="#f0f2f6">.</font>
+  			</td>
+  		</tr>
+  		<tr>
+  			<td width="200" align="right">
+  				<div class="dropdown-label">Date range:</div>
+  			</td>
+  			<td width="27">
+  			</td>
+  			<td width="260">
+      			<div id="dateSelect"></div>
+  			</td>
+  			<td width="160" align="right">
+  				<div class="dropdown-label">Start Event:</div>
+  			</td>
+  			<td width="27">
+  			</td>
+  			<td width="250">
+      			<div id="startEventSelect"></div>
+  			</td>
+  		</tr>
+  		<tr>
+  			<td align="right">
+  				<div class="dropdown-label">Session length:</div>
+  			</td>
+  			<td>
+  			</td>
+  			<td>
+      			<div id="timeSelect"></div>
+      			<div id="unitSelect"></div>
+  			</td>
+  			<td align="right">
+  				<div class="dropdown-label">End Event:</div>
+  			</td>
+  			<td>
+  			</td>
+  			<td>
+      			<div id="eventSelect"></div>
+  			</td>
+  		</tr>
+  		<tr>
+  			<td align="right">
+  				<div class="dropdown-label">Sequence Length (# events):</div>
+  			</td>
+  			<td>
+  			</td>
+  			<td>
+      			<div id="minLengthSelect"></div>
+      			<div id="maxLengthSelect"></div>
+  			</td>
+  			<td align="right">
+  				<div class="dropdown-label">Property:</div>
+  			</td>
+  			<td>
+  			</td>
+  			<td>
+      			<div id="propSelect"></div>
+  			</td>
+  		</tr>
+  		<tr>
+  			<td align="right">
+  				<div class="dropdown-label">Number of results to show:</div>
+  			</td>
+  			<td>
+  			</td>
+  			<td>
+      			<div id="numResultsSelect"></div>  	
+  			</td>
+  			<td align="right">
+  				<div class="dropdown-label">People Property:</div>
+  			</td>
+  			<td>
+  			</td>
+  			<td>
+      			<div id="peoplePropSelect"></div>
+  			</td>
+  		</tr>
+  	</table>
+<!-- 
   	  <div class="header" style="display:flex;justify-content:center;align-items:center;width:695px;">Most Common User Flows</div>
   	  <div class="dropdown-section">
   	  	<div class="select left">
@@ -222,7 +318,7 @@
       		<div class="dropdown-label">People Property: (overwrites property)</div>
       		<div id="peoplePropSelect"></div>
       	</div>
-      </div>
+      </div> -->
     </div>
     <div id="table"></div>
     <script>
@@ -258,7 +354,8 @@
 			    'start_event': start_event.MPEventSelect('value'),
 			    'end_event': finish_event.MPEventSelect('value'),
 			    'property': property.MPPropertySelect('value'),
-			    'people_prop' : peopleProperty == 0? null: peopleProperty.MPSelect('value')
+			    'people_prop' : peopleProperty == 0? null: peopleProperty.MPSelect('value'),
+			    'bad_events': ['$campaign_delivery', '$campaign_marked_spam', '$campaign_bounced', '$campaign_open', '$experiment_started']
 			};
 			MP.api.custom_query(script, params).done(function(results) {
 				console.log(results);
