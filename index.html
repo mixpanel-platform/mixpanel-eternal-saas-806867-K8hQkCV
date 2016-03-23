@@ -9,9 +9,18 @@
   	<style>
   		.header {
   			font-size: 20px;
-  			color: gray;
+  			color: #747d94;
   			font-weight: bold;
   			margin-bottom: 15px;
+  			text-align: center;
+  		}
+  		.space {
+  			color: #f0f2f6;
+  		}
+  		.label {
+  			text-align: right;
+  			color: #747d94;
+  			font-weight: bold;
   		}
   		.mixpanel-platform-select.event_selector_theme {
   			max-width: 53px;
@@ -34,9 +43,7 @@
   		}
   	</style>
   	<script id='query'>
-		function filterOutPeopleWithNoEvents(item) {
-		    return item.event;
-		}
+		var bad_events = ['$campaign_delivery', '$campaign_marked_spam', '$campaign_bounced', '$campaign_open', '$experiment_started'];
 
 		function createStateWithPeople(state, items) {
 		    state = state || {sequence: []};
@@ -50,9 +57,8 @@
 		            state.done = event.name == params.end_event;
 		        }
 		    };
-		    var badEvents = params.bad_events? params.bad_events : [];
 		    _.chain(items)
-		     .filter(function(item) {return !_.contains(badEvents, item.event.name);})
+		     .filter(function(item) {return !_.contains(bad_events, item.event.name);})
 		     .each(stateUpdater);
 		    return state;
 		}
@@ -68,39 +74,12 @@
 		            state.done = event.name == params.end_event;
 		        }
 		    };
-		    var badEvents = params.bad_events? params.bad_events : [];
 		    _.chain(events)
-		     .filter(function(event) {return !_.contains(badEvents, event.name);})
+		     .filter(function(event) {return !_.contains(bad_events, event.name);})
 		     .each(stateUpdater);
 		    if (!params.property)
 		        state.propval = 'No Property';
 		    return state;
-		}
-
-		function filterForEndEvent(item) {
-		    return params.end_event? item.value.done && item.value.active : item;
-		}
-
-		function mapToSequence(item) {
-		    var state = item.value;
-		    var end_time = state.sequence.length > 0 ? state.sequence[state.sequence.length - 1].time : false;
-		    var sequenceFilter = function(item) {return end_time - item.time < params.conversion_length;};
-		    return {sequence: _.chain(state.sequence)
-		                       .filter(sequenceFilter)
-		                       .pluck('name')
-		                       .value(),
-		            property: state.propval? state.propval : 'No Property'};
-		}
-
-		function filterToRelevantSequences(item) {
-		    return !((params.start_event && item.sequence[0] != params.start_event)
-		           ||(params.end_event && item.sequence[item.sequence.length - 1] != params.end_event)
-		           ||(params.min_length && item.sequence.length < params.min_length)
-		           ||(params.max_length && item.sequence.length > params.max_length));
-		}
-
-		function getKey(item) {
-		    return item.key[item.key.length - 1];
 		}
 
 		function theTop(n) {
@@ -140,23 +119,37 @@
 		function main() {
 		    if (params.people_prop) {
 		        return join(Events({from_date: params.from_date, to_date: params.to_date}), People())
-		        .filter(filterOutPeopleWithNoEvents)
+		        .filter(item => item.event)
 		        .groupByUser(createStateWithPeople)
-		        .filter(filterForEndEvent)
-		        .map(mapToSequence)
-		        .filter(filterToRelevantSequences)
+		        .filter(item => params.end_event? item.value.done && item.value.active : item)
+		        .map(item => ({sequence: _.chain(item.value.sequence)
+		                                  .filter(event => item.value.sequence[item.value.sequence.length - 1].time - event.time < params.conversion_length)
+		                                  .pluck('name')
+		                                  .value(),
+		                       property: item.value.propval? item.value.propval : 'No Property'}))
+		        .filter(item => !((params.start_event && item.sequence[0] != params.start_event)
+		                        ||(params.end_event && item.sequence[item.sequence.length - 1] != params.end_event)
+		                        ||(params.min_length && item.sequence.length < params.min_length)
+		                        ||(params.max_length && item.sequence.length > params.max_length)))
 		        .groupBy(['sequence', 'property'], mixpanel.reducer.count())
-		        .groupBy([getKey], theTop(params.num_results))
+		        .groupBy([item => item.key[item.key.length - 1]], theTop(params.num_results))
 		        .map(mapToFinalResult);
 		    }
 		    else {
 		        return Events({from_date: params.from_date, to_date: params.to_date})
 		        .groupByUser(createState)
-		        .filter(filterForEndEvent)
-		        .map(mapToSequence)
-		        .filter(filterToRelevantSequences)
+		        .filter(item => params.end_event? item.value.done && item.value.active : item)
+		        .map(item => ({sequence: _.chain(item.value.sequence)
+		                                  .filter(event => item.value.sequence[item.value.sequence.length - 1].time - event.time < params.conversion_length)
+		                                  .pluck('name')
+		                                  .value(),
+		                       property: item.value.propval? item.value.propval : 'No Property'}))
+		        .filter(item => !((params.start_event && item.sequence[0] != params.start_event)
+		                        ||(params.end_event && item.sequence[item.sequence.length - 1] != params.end_event)
+		                        ||(params.min_length && item.sequence.length < params.min_length)
+		                        ||(params.max_length && item.sequence.length > params.max_length)))
 		        .groupBy(['sequence', 'property'], mixpanel.reducer.count())
-		        .groupBy([getKey], theTop(params.num_results))
+		        .groupBy([item => item.key[item.key.length - 1]], theTop(params.num_results))
 		        .map(mapToFinalResult);
 		    }
 		}
@@ -164,88 +157,42 @@
   	<div class="mixpanel-platform-section" style='width:919px'>
   	<table>
   		<tr>
-  			<td class='header' colspan='6' align="center">
-  				Most Common User Flows
-  			</td>
+  			<td colspan='6' class='header'>Most Common User Flows</td>
   		</tr>
   		<tr>
-  			<td colspan='6' align="center">
-  				<font color="#f0f2f6">.</font>
-  			</td>
+  			<td colspan='6' class="space">.</td>
   		</tr>
   		<tr>
-  			<td width="199" align="right">
-  				<div class="dropdown-label">Date range:</div>
-  			</td>
-  			<td width="25">
-  			</td>
-  			<td width="260">
-      			<div id="dateSelect"></div>
-  			</td>
-  			<td width="160" align="right">
-  				<div class="dropdown-label">Start Event:</div>
-  			</td>
-  			<td width="25">
-  			</td>
-  			<td width="250">
-      			<div id="startEventSelect"></div>
-  			</td>
+  			<td width="199" class="label">Date range:</td>
+  			<td width="25" class="space">.</td>
+  			<td width="260" class="dropdown"><div id="dateSelect"></div></td>
+  			<td width="160" class="label">Start Event:</td>
+  			<td width="25" class="space">.</td>
+  			<td width="250" class="dropdown"><div id="startEventSelect"></div></td>
   		</tr>
   		<tr>
-  			<td align="right">
-  				<div class="dropdown-label">Session length:</div>
-  			</td>
-  			<td>
-  			</td>
-  			<td>
-      			<div id="timeSelect"></div>
-      			<div id="unitSelect"></div>
-  			</td>
-  			<td align="right">
-  				<div class="dropdown-label">End Event:</div>
-  			</td>
-  			<td>
-  			</td>
-  			<td>
-      			<div id="eventSelect"></div>
-  			</td>
+  			<td class="label">Session length:</td>
+  			<td class="space">.</td>
+  			<td class="dropdown"><div id="timeSelect"></div><div id="unitSelect"></div></td>
+  			<td class="label">End Event:</td>
+  			<td class="space">.</td>
+  			<td class="dropdown"><div id="eventSelect"></div></td>
   		</tr>
   		<tr>
-  			<td align="right">
-  				<div class="dropdown-label">Sequence Length (# events):</div>
-  			</td>
-  			<td>
-  			</td>
-  			<td>
-      			<div id="minLengthSelect"></div>
-      			<div id="maxLengthSelect"></div>
-  			</td>
-  			<td align="right">
-  				<div class="dropdown-label">Property:</div>
-  			</td>
-  			<td>
-  			</td>
-  			<td>
-      			<div id="propSelect"></div>
-  			</td>
+  			<td class="label">Sequence Length (# events):</td>
+  			<td class="space">.</td>
+  			<td class="dropdown"><div id="minLengthSelect"></div><div id="maxLengthSelect"></div></td>
+  			<td class="label">Property:</td>
+  			<td class="space">.</td>
+  			<td class="dropdown"><div id="propSelect"></div></td>
   		</tr>
   		<tr>
-  			<td align="right">
-  				<div class="dropdown-label">Number of results to show:</div>
-  			</td>
-  			<td>
-  			</td>
-  			<td>
-      			<div id="numResultsSelect"></div>  	
-  			</td>
-  			<td align="right">
-  				<div class="dropdown-label">People Property:</div>
-  			</td>
-  			<td>
-  			</td>
-  			<td>
-      			<div id="peoplePropSelect"></div>
-  			</td>
+  			<td class="label">Number of results to show:</td>
+  			<td class="space">.</td>
+  			<td class="dropdown"><div id="numResultsSelect"></div></td>
+  			<td class="label">People Property:</td>
+  			<td class="space">.</td>
+  			<td class="dropdown"><div id="peoplePropSelect"></div></td>
   		</tr>
   	</table>
     </div>
@@ -287,34 +234,36 @@
 			    'bad_events': ['$campaign_delivery', '$campaign_marked_spam', '$campaign_bounced', '$campaign_open', '$experiment_started']
 			};
 			MP.api.custom_query(script, params).done(function(results) {
-				console.log(results);
 				var res = [];
 				if (results.length > 0) {
-					for (var i = 0; i < params.num_results; i++) {
-						res.push({});
-					}
+					res = _(params.num_results).times(() => ({}));
+					var sequenceMapper = function(sequence) {
+						var seq = '';
+						_.each(sequence, function(item, index) {
+							seq = index != sequence.length - 1? seq + item + ' -> ': seq + item; 
+						});
+						return seq;
+					};
 					var resultMapper = function(item) {
 		                var propval = item.key.property + ' (' + item.key.count + ')';
-		                for (i = 0; i < params.num_results; i++) {
-		                    var result = 'no flow';
-		                    if (item.value[i])
-		                        result = item.value[i].count + ' (' + item.value[i].percentage + '%): ' + item.value[i].sequence;
-		                    res[i][propval] = result;
-		                }
+		                _.each(res, function(val, i) {
+		                	val[propval] = item.value[i]? item.value[i].count + ' (' + item.value[i].percentage + '%): ' + sequenceMapper(item.value[i].sequence) : '--';
+		                });
 		            };
 		            _.each(results, resultMapper);
+		            console.log(res);
 					res.unshift('');
 					delete res[0];
 				}
 			    eventTable.MPTable('setData', res);
 			});
 		}
-		runQuery();
 		MP.api.query('/api/2.0/engage/properties').done(function(json) {
     		var items = _.map(json.results, function(item, key) {return {label: key, value: key};})
     		items.unshift({label:'-- Select a people property --', value: undefined});
     		peopleProperty = $('#peoplePropSelect').MPSelect({items: items});
     		peopleProperty.on('change', function() {runQuery();});
+    		runQuery();
     	});
 		dateSelect.on('change', function() {runQuery();});
 		time_length.on('change', function(e, selection) {runQuery();});
