@@ -52,14 +52,14 @@
 		            state.active = true;
 		        if (state.active && !state.done) {
 		            state.sequence.push({name: event.name, time: event.time});
-		            state.propval = event.properties[params.property];
+		            state.propval = params.people_prop? event.properties[params.people_prop] : event.properties[params.property];
 		            state.done = event.name == params.end_event;
 		        }
 		    };
 		    var itemMapper = function(item) {
 		        if (params.people_prop) {
 		            var event = _.clone(item.event);
-		            event.properties = item.user? item.user.properties : {};
+		            event.properties = item.user? _.clone(item.user.properties) : {};
 		            return event;
 		        }
 		        else
