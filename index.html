@@ -45,25 +45,7 @@
   	<script id='query'>
 		var bad_events = ['$campaign_delivery', '$campaign_marked_spam', '$campaign_bounced', '$campaign_open', '$experiment_started'];
 
-		function createStateWithPeople(state, items) {
-		    state = state || {sequence: []};
-		    var stateUpdater = function(item) {
-		        var event = item.event;
-		        if (!params.start_event || params.start_event == event.name)
-		            state.active = true;
-		        if (state.active && !state.done) {
-		            state.sequence.push({name: event.name, time: event.time});
-		            state.propval = item.user? item.user.properties[params.people_prop] : false;
-		            state.done = event.name == params.end_event;
-		        }
-		    };
-		    _.chain(items)
-		     .filter(function(item) {return !_.contains(bad_events, item.event.name);})
-		     .each(stateUpdater);
-		    return state;
-		}
-
-		function createState(state, events) {
+		function createState(state, items) {
 		    state = state || {sequence: []};
 		    var stateUpdater = function(event) {
 		        if (!params.start_event || params.start_event == event.name)
@@ -74,11 +56,19 @@
 		            state.done = event.name == params.end_event;
 		        }
 		    };
-		    _.chain(events)
-		     .filter(function(event) {return !_.contains(bad_events, event.name);})
+		    var itemMapper = function(item) {
+		        if (params.people_prop) {
+		            var event = _.clone(item.event);
+		            event.properties = item.user? item.user.properties : {};
+		            return event;
+		        }
+		        else
+		            return item;
+		    }
+		    _.chain(items)
+		     .map(itemMapper)
+		     .filter(function(item) {return !_.contains(bad_events, item.name);})
 		     .each(stateUpdater);
-		    if (!params.property)
-		        state.propval = 'No Property';
 		    return state;
 		}
 
@@ -102,25 +92,22 @@
 		}
 
 		function mapToFinalResult(item) {
-		    var removeLastAndAddPercentage = function(result) {
-		        result.key.pop();
-		        result.percentage = Math.round(result.value * 1000 / item.value.count) / 10;
-		        result.sequence = result.key;
-		        result.count = result.value;
-		        delete result.value;
-		        delete result.key;
-		    };
-		    _.each(item.value.results, removeLastAndAddPercentage);
-		    item.key = {property: item.key[0], count: item.value.count};
-		    item.value = item.value.results;
-		    return item;
+		    var count = item.value.count;
+		    var results = _.map(item.value.results, function(seq) {
+		        var res = {};
+		        res.count = seq.value;
+		        res.percentage = Math.round(1000 * seq.value / count) / 10;
+		        res.sequence = _.first(seq.key, seq.key.length - 1);
+		        return res;
+		    });
+		    return {value: results, key: {count: count, property: item.key[0]}};
 		}
 
 		function main() {
 		    if (params.people_prop) {
 		        return join(Events({from_date: params.from_date, to_date: params.to_date}), People())
 		        .filter(item => item.event)
-		        .groupByUser(createStateWithPeople)
+		        .groupByUser(createState)
 		        .filter(item => params.end_event? item.value.done && item.value.active : item)
 		        .map(item => ({sequence: _.chain(item.value.sequence)
 		                                  .filter(event => item.value.sequence[item.value.sequence.length - 1].time - event.time < params.conversion_length)
