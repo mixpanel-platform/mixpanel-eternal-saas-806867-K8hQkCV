@@ -15,7 +15,7 @@
   			text-align: center;
   		}
   		#graph {
-  			margin-bottom: 15px;
+  			margin-bottom:;
   		}
   		.space {
   			color: #f0f2f6;
@@ -368,7 +368,8 @@
 			                enabled: true,
 			                formatter: function(){
 			                    var val = this.y;
-			                    if (val < 10) {
+			                    var percent = this.percentage;
+			                    if (percent < 2) {
 			                        return '';
 			                    }
 			                    return val;
