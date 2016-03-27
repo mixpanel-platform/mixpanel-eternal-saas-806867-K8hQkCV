@@ -99,7 +99,7 @@
 		    var results = _.map(item.value.results, function(seq) {
 		        var res = {};
 		        res.count = seq.value;
-		        res.percentage = Math.round(10000 * seq.value / count) / 100;
+		        res.percentage = 100 * seq.value / count;
 		        res.sequence = _.first(seq.key, seq.key.length - 1);
 		        return res;
 		    });
@@ -245,21 +245,21 @@
 				var res = [];
 				var graphRes = {};
 				var propVals = [];
+				var propTotals = {};
+				_.chain(results)
+				 .pluck('key')
+				 .each(function(item) {propTotals[item.property] = item.count});
 				_.each(results, function(item) {
-					var countUsed = 0;
 					propVals.push(item.key.property);
 					_.each(item.value, function(seq, index) {
 						var sequence = sequenceMapper(seq.sequence);
 						graphRes[sequence] = graphRes[sequence] || {};
-						graphRes[sequence][item.key.property] = seq.count;
-						countUsed += seq.count;
+						graphRes[sequence][item.key.property] = {count:seq.count, percentage: seq.percentage};
 					});
-					graphRes.Other = graphRes.Other || {};
-					graphRes.Other[item.key.property] = item.key.count - countUsed;
 				});
 				_.each(_.keys(graphRes), function(flow) {
 					_.each(propVals, function(prop) {
-						graphRes[flow][prop] = graphRes[flow][prop]? graphRes[flow][prop] : 0;
+						graphRes[flow][prop] = graphRes[flow][prop]? graphRes[flow][prop] : {count: 0, percentage: 0};
 					});
 				});
 				if (results.length > 0) {
@@ -267,7 +267,7 @@
 					var resultMapper = function(item) {
 		                var propval = item.key.property + ' (' + item.key.count + ')';
 		                _.each(res, function(val, i) {
-		                	val[propval] = item.value[i]? item.value[i].count + ' (' + item.value[i].percentage + '%): ' + sequenceMapper(item.value[i].sequence) : '--';
+		                	val[propval] = item.value[i]? item.value[i].count + ' (' + (Math.round(10 * item.value[i].percentage) / 10) + '%): ' + sequenceMapper(item.value[i].sequence) : '--';
 		                });
 		            };
 		            _.each(results, resultMapper);
@@ -275,7 +275,7 @@
 					res.unshift('');
 					delete res[0];
 				}
-				stackedGraph.highcharts(getChartOptions(graphRes));
+				stackedGraph.highcharts(getChartOptions(graphRes, propTotals));
 			    eventTable.MPTable('setData', res);
 			});
 		}
@@ -296,8 +296,9 @@
 		finish_event.on('change', function(e, selection) {runQuery();});
 		property.on('change', function(e, selection) {runQuery();});
 
-		function getChartOptions(res) {
+		function getChartOptions(res, propTotals) {
 			var props =[];
+			var propCounts = {};
 			var flows = [];
 			var color_indexes = [0,1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9];
 			_.each(res, function(flow) {
@@ -306,23 +307,35 @@
 						props.push(prop);
 				});
 			});
+			props = _.map(props, function(prop) {
+				var sum = 0;
+				_.each(res, function(item) {
+					sum += item[prop].count;
+				});
+				propCounts[prop] = sum;
+				return prop;
+			});
+			props = _.sortBy(props, function(prop) {
+				return -1 * propCounts[prop];
+			});
+			propMappings = propTotals;
 			_.each(res, function(flow, key) {
 				var fl = {};
 				fl.name = key;
 				fl._colorIndex = color_indexes.pop();
 				fl.data = [];
 				_.each(props, function(prop) {
-					fl.data.push(flow[prop])
+					fl.data.push(flow[prop].percentage)
 				});
 				flows.push(fl);
-			})
+			});
 			chartOptions = {
 			    chart: {
 			        type: 'column',
 			        normalized: true
 			    },
 			    title: {
-			        text: 'Flow Frequency by Property',
+			        text: 'Flow Frequency (in %) by Property',
 			        style: {
 			        	fontSize: '20px',
 			  			color: '#747d94',
@@ -335,55 +348,32 @@
 			    },
 			    yAxis: {
 			        min: 0,
-			        title: {
-			            text: ''
-			        },
+			        title: {text: ''},
 			        endOnTick: false,
 			        maxPadding: 0.0,
-			        stackLabels: {
-			            enabled: true,
-			            style: {
-			                fontWeight: 'bold',
-			                color: (Highcharts.theme && Highcharts.theme.textColor) || 'gray'
-			            }
-			        },
+			        stackLabels: {enabled: false},
 			        allowDecimals: false
 			    },
-			    legend: {
-			    	enabled: false,
-			        align: 'right',
-			        x: 0,
-			        verticalAlign: 'top',
-			        y: 0,
-			        floating: true,
-			        backgroundColor: (Highcharts.theme && Highcharts.theme.legendBackgroundColorSolid) || 'white',
-			        borderColor: '#CCC',
-			        borderWidth: 1,
-			        shadow: false
-			    },
+			    legend: {enabled: false},
 			    tooltip: {
 			        formatter: function () {
-			            return this.series.name + ': ' + this.y + '<br/>' +
-			                'Total: ' + this.point.stackTotal + '<br/>' +
+			            return this.series.name + ': ' + Math.round(this.y) + '%<br/>' +
+			                'Total: ' + Math.round(propMappings[this.x]) + '<br/>' +
 			                'Property: ' + this.x;
 			        }
 			    },
 			    plotOptions: {
 			        column: {
-			            stacking: 'percent',
+			            stacking: 'normal',
 			            dataLabels: {
 			                enabled: true,
 			                formatter: function(){
-			                    var val = this.y;
-			                    var percent = this.percentage;
-			                    if (percent < 2) {
+			                    if (this.y < 2)
 			                        return '';
-			                    }
-			                    return val;
+			                    return Math.round(this.y * propMappings[this.key] * .01);
 			                },
 			                color: (Highcharts.theme && Highcharts.theme.dataLabelsColor) || 'white'
-			            },
-			            treshold: 1
+			            }
 			        }
 			    },
 			    series: flows
