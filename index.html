@@ -96,7 +96,7 @@
 		    var results = _.map(item.value.results, function(seq) {
 		        var res = {};
 		        res.count = seq.value;
-		        res.percentage = Math.round(1000 * seq.value / count) / 10;
+		        res.percentage = Math.round(10000 * seq.value / count) / 100;
 		        res.sequence = _.first(seq.key, seq.key.length - 1);
 		        return res;
 		    });
@@ -161,7 +161,7 @@
   			<td colspan='6' class="space">.</td>
   		</tr>
   		<tr>
-  			<td class="label">Session length:</td>
+  			<td class="label">Conversion Window:</td>
   			<td class="space">.</td>
   			<td class="dropdown"><div id="timeSelect"></div><div id="unitSelect"></div></td>
   			<td class="label">End Event:</td>
@@ -172,7 +172,7 @@
   			<td colspan='6' class="space">.</td>
   		</tr>
   		<tr>
-  			<td class="label">Sequence Length (# events):</td>
+  			<td class="label">Sequence Length (min/max):</td>
   			<td class="space">.</td>
   			<td class="dropdown"><div id="minLengthSelect"></div><div id="maxLengthSelect"></div></td>
   			<td class="label">Property:</td>
@@ -192,9 +192,11 @@
   		</tr>
   	</table>
     </div>
+    <div id="graph"></div>
     <div id="table"></div>
     <script>
 		var script = document.getElementById('query').innerHTML;
+		var stackedGraph = $('#graph').MPChart({chartType: 'bar', stacked: true, normalized: true});
 		var eventTable = $('#table').MPTable({showPercentages: false, firstColHeader: 'Rank'});
 		var dateSelect = $('#dateSelect').MPDatepicker();
 		var items = function() {return item_list = _.map(arguments, function(item) {return {label: String(item), value: item};})};
@@ -205,8 +207,8 @@
 		var max_sequence_length = $('#maxLengthSelect').MPSelect({items: items(1,2,3,4,5,6,7,8,9,10)});
 		min_sequence_length.val(1);
 		max_sequence_length.val(10);
-		var max_results = $('#numResultsSelect').MPSelect({items: items(2, 5, 10, 15, 50)});
-		max_results.val(10);
+		var max_results = $('#numResultsSelect').MPSelect({items: items(3, 5, 10, 15, 50)});
+		max_results.val(3);
 		var start_event = $('#startEventSelect').MPEventSelect();
 		var finish_event = $('#eventSelect').MPEventSelect();
 		var property = $('#propSelect').MPPropertySelect();
@@ -230,16 +232,35 @@
 			    'bad_events': ['$campaign_delivery', '$campaign_marked_spam', '$campaign_bounced', '$campaign_open', '$experiment_started']
 			};
 			MP.api.custom_query(script, params).done(function(results) {
-				var res = [];
-				if (results.length > 0) {
-					res = _(params.num_results).times(() => ({}));
-					var sequenceMapper = function(sequence) {
+				var sequenceMapper = function(sequence) {
 						var seq = '';
 						_.each(sequence, function(item, index) {
 							seq = index != sequence.length - 1? seq + item + ' -> ': seq + item; 
 						});
 						return seq;
 					};
+				var res = [];
+				var graphRes = {};
+				var propVals = [];
+				_.each(results, function(item) {
+					var countUsed = 0;
+					propVals.push(item.key.property);
+					_.each(item.value, function(seq, index) {
+						var sequence = sequenceMapper(seq.sequence);
+						graphRes[sequence] = graphRes[sequence] || {};
+						graphRes[sequence][item.key.property] = seq.count;
+						countUsed += seq.count;
+					});
+					graphRes.Other = graphRes.Other || {};
+					graphRes.Other[item.key.property] = item.key.count - countUsed;
+				});
+				_.each(_.keys(graphRes), function(flow) {
+					_.each(propVals, function(prop) {
+						graphRes[flow][prop] = graphRes[flow][prop]? graphRes[flow][prop] : 0;
+					});
+				});
+				if (results.length > 0) {
+					res = _(params.num_results).times(() => ({}));
 					var resultMapper = function(item) {
 		                var propval = item.key.property + ' (' + item.key.count + ')';
 		                _.each(res, function(val, i) {
@@ -251,6 +272,7 @@
 					res.unshift('');
 					delete res[0];
 				}
+				stackedGraph.highcharts(getChartOptions(graphRes));
 			    eventTable.MPTable('setData', res);
 			});
 		}
@@ -270,6 +292,93 @@
 	    start_event.on('change', function(e, selection) {runQuery();});
 		finish_event.on('change', function(e, selection) {runQuery();});
 		property.on('change', function(e, selection) {runQuery();});
+
+		function getChartOptions(res) {
+			var props =[];
+			var flows = [];
+			var color_indexes = [0,1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9];
+			_.each(res, function(flow) {
+				_.each(_.keys(flow), function(prop) {
+					if (!_.contains(props, prop))
+						props.push(prop);
+				});
+			});
+			_.each(res, function(flow, key) {
+				var fl = {};
+				fl.name = key;
+				fl._colorIndex = color_indexes.pop();
+				fl.data = [];
+				_.each(props, function(prop) {
+					fl.data.push(flow[prop])
+				});
+				flows.push(fl);
+			})
+			chartOptions = {
+			    chart: {
+			        type: 'column',
+			        normalized: true,
+			        marginTop: 80
+			    },
+			    title: {
+			        text: ''
+			    },
+			    xAxis: {
+			        categories: props
+			    },
+			    yAxis: {
+			        min: 0,
+			        title: {
+			            text: ''
+			        },
+			        endOnTick: false,
+			        maxPadding: 0.0,
+			        stackLabels: {
+			            enabled: true,
+			            style: {
+			                fontWeight: 'bold',
+			                color: (Highcharts.theme && Highcharts.theme.textColor) || 'gray'
+			            }
+			        },
+			        allowDecimals: false
+			    },
+			    legend: {
+			        align: 'right',
+			        x: 0,
+			        verticalAlign: 'top',
+			        y: 0,
+			        floating: true,
+			        backgroundColor: (Highcharts.theme && Highcharts.theme.legendBackgroundColorSolid) || 'white',
+			        borderColor: '#CCC',
+			        borderWidth: 1,
+			        shadow: false
+			    },
+			    tooltip: {
+			        formatter: function () {
+			            return '<b>' + this.x + '</b><br/>' + this.series.name + ': ' + this.y + '<br/>' +
+			                'Total: ' + this.point.stackTotal;
+			        }
+			    },
+			    plotOptions: {
+			        column: {
+			            stacking: 'percent',
+			            dataLabels: {
+			                enabled: true,
+			                formatter: function(){
+			                    var val = this.y;
+			                    if (val < 10) {
+			                        return '';
+			                    }
+			                    return val;
+			                },
+			                color: (Highcharts.theme && Highcharts.theme.dataLabelsColor) || 'white'
+			            },
+			            treshold: 1
+			        }
+			    },
+			    series: flows
+			};
+			return chartOptions;
+		}
     </script>
   </body>
 </html>
