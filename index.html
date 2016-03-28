@@ -46,103 +46,113 @@
   		}
   	</style>
   	<script id='query'>
-		var bad_events = ['$campaign_delivery', '$campaign_marked_spam', '$campaign_bounced', '$campaign_open', '$experiment_started'];
+var bad_events = ['$campaign_delivery', '$campaign_marked_spam', '$campaign_bounced', '$campaign_open', '$experiment_started'];
 
-		function createState(state, items) {
-		    state = state || {sequence: []};
-		    var stateUpdater = function(event) {
-		        if (!params.start_event || params.start_event == event.name)
-		            state.active = true;
-		        if (state.active && !state.done) {
-		            state.sequence.push({name: event.name, time: event.time});
-		            state.propval = params.people_prop? event.properties[params.people_prop] : event.properties[params.property];
-		            state.done = event.name == params.end_event;
-		        }
-		    };
-		    var itemMapper = function(item) {
-		        if (params.people_prop) {
-		            var event = _.clone(item.event);
-		            event.properties = item.user? _.clone(item.user.properties) : {};
-		            return event;
-		        }
-		        else
-		            return item;
-		    }
-		    _.chain(items)
-		     .map(itemMapper)
-		     .filter(function(item) {return !_.contains(bad_events, item.name);})
-		     .each(stateUpdater);
-		    return state;
-		}
+function createState(state, items) {
+    state = state || {sequence: []};
+    var stateUpdater = function(event) {
+        if (!params.start_event)
+            state.active = true;
+        if (params.start_event && !state.active && event.name == params.start_event) {
+            state.active = true;
+            state.start_time = event.time;
+        }
+        if (state.active && !state.done && (params.end_event&&!params.start_event || !state.start_time || event.time - params.conversion_length <= state.start_time)) {
+            state.sequence.push({name: event.name, time: event.time});
+            state.start_time = state.start_time? state.start_time : event.time;
+            state.propval = params.people_prop? event.properties[params.people_prop] : event.properties[params.property];
+            state.done = event.name == params.end_event;
+        }
+        if (state.start_time 
+           && !state.done
+           && (event.time - params.conversion_length) > state.start_time
+           && params.end_event
+           && params.start_event) {
+            state.sequence = [];
+            state.active = false;
+            delete state.start_time;
+        }
+    };
+    var itemMapper = function(item) {
+        if (params.people_prop) {
+            var event = _.clone(item.event);
+            event.properties = item.user? _.clone(item.user.properties) : {};
+            return event;
+        }
+        else
+            return item;
+    };
+    _.chain(items)
+     .map(itemMapper)
+     .filter(function(item) {return !_.contains(bad_events, item.name);})
+     .each(stateUpdater);
+    return state;
+}
 
-		function theTop(n) {
-		    return function(accumulators, items) {
-		        var count = 0;
-		        var countAdder = function(item) {count += item};
-		        _.chain(items)
-		         .pluck('value')
-		         .each(countAdder)
-		        _.chain(accumulators)
-		         .pluck('count')
-		         .each(countAdder)
-		        return {results: _.pluck(accumulators, 'results')
-		                          .reduce(function(a,b) {return a.concat(b);},[])
-		                          .concat(items)
-		                          .sort(function(a, b) {return b.value - a.value;})
-		                          .slice(0, n),
-		                count: count};
-		    };
-		}
+function theTop(n) {
+    return function(accumulators, items) {
+        var count = 0;
+        var countAdder = function(item) {count += item};
+        _.chain(items)
+         .pluck('value')
+         .each(countAdder)
+        _.chain(accumulators)
+         .pluck('count')
+         .each(countAdder)
+        return {results: _.pluck(accumulators, 'results')
+                          .reduce(function(a,b) {return a.concat(b);},[])
+                          .concat(items)
+                          .sort(function(a, b) {return b.value - a.value;})
+                          .slice(0, n),
+                count: count};
+    };
+}
 
-		function mapToFinalResult(item) {
-		    var count = item.value.count;
-		    var results = _.map(item.value.results, function(seq) {
-		        var res = {};
-		        res.count = seq.value;
-		        res.percentage = 100 * seq.value / count;
-		        res.sequence = _.first(seq.key, seq.key.length - 1);
-		        return res;
-		    });
-		    return {value: results, key: {count: count, property: item.key[0]}};
-		}
+function mapToFinalResult(item) {
+    var count = item.value.count;
+    var results = _.map(item.value.results, function(seq) {
+        var res = {};
+        res.count = seq.value;
+        res.percentage = 100 * seq.value / count;
+        res.sequence = _.first(seq.key, seq.key.length - 1);
+        return res;
+    });
+    return {value: results, key: {count: count, property: item.key[0]}};
+}
 
-		function main() {
-		    if (params.people_prop) {
-		        return join(Events({from_date: params.from_date, to_date: params.to_date}), People())
-		        .filter(item => item.event)
-		        .groupByUser(createState)
-		        .filter(item => params.end_event? item.value.done && item.value.active : item)
-		        .map(item => ({sequence: _.chain(item.value.sequence)
-		                                  .filter(event => item.value.sequence[item.value.sequence.length - 1].time - event.time < params.conversion_length)
-		                                  .pluck('name')
-		                                  .value(),
-		                       property: item.value.propval? item.value.propval : 'No Property'}))
-		        .filter(item => !((params.start_event && item.sequence[0] != params.start_event)
-		                        ||(params.end_event && item.sequence[item.sequence.length - 1] != params.end_event)
-		                        ||(params.min_length && item.sequence.length < params.min_length)
-		                        ||(params.max_length && item.sequence.length > params.max_length)))
-		        .groupBy(['sequence', 'property'], mixpanel.reducer.count())
-		        .groupBy([item => item.key[item.key.length - 1]], theTop(params.num_results))
-		        .map(mapToFinalResult);
-		    }
-		    else {
-		        return Events({from_date: params.from_date, to_date: params.to_date})
-		        .groupByUser(createState)
-		        .filter(item => params.end_event? item.value.done && item.value.active : item)
-		        .map(item => ({sequence: _.chain(item.value.sequence)
-		                                  .filter(event => item.value.sequence[item.value.sequence.length - 1].time - event.time < params.conversion_length)
-		                                  .pluck('name')
-		                                  .value(),
-		                       property: item.value.propval? item.value.propval : 'No Property'}))
-		        .filter(item => !((params.start_event && item.sequence[0] != params.start_event)
-		                        ||(params.end_event && item.sequence[item.sequence.length - 1] != params.end_event)
-		                        ||(params.min_length && item.sequence.length < params.min_length)
-		                        ||(params.max_length && item.sequence.length > params.max_length)))
-		        .groupBy(['sequence', 'property'], mixpanel.reducer.count())
-		        .groupBy([item => item.key[item.key.length - 1]], theTop(params.num_results))
-		        .map(mapToFinalResult);
-		    }
-		}
+function main() {
+    if (params.people_prop) {
+        return join(Events({from_date: params.from_date, to_date: params.to_date}), People())
+        .filter(item => item.event)
+        .groupByUser(createState)
+        .filter(item => params.end_event? item.value.done && item.value.active : item && item.value.sequence.length > 0)
+        .map(item => ({sequence: _.chain(item.value.sequence)
+                            .filter(event => item.value.sequence[item.value.sequence.length - 1].time - event.time < params.conversion_length)
+                            .pluck('name')
+                            .value(),
+                  property: item.value.propval? item.value.propval: 'No Property'}))
+        .filter(item => !(params.min_length && item.sequence.length < params.min_length)
+                        ||(params.max_length && item.sequence.length > params.max_length))
+        .groupBy(['sequence', 'property'], mixpanel.reducer.count())
+        .groupBy([item => item.key[item.key.length - 1]], theTop(params.num_results))
+        .map(mapToFinalResult);
+    }
+    else {
+        return Events({from_date: params.from_date, to_date: params.to_date})
+        .groupByUser(createState)
+        .filter(item => params.end_event? item.value.done && item.value.active : item && item.value.sequence.length > 0)
+        .map(item => ({sequence: _.chain(item.value.sequence)
+                            .filter(event => item.value.sequence[item.value.sequence.length - 1].time - event.time < params.conversion_length)
+                            .pluck('name')
+                            .value(),
+                  property: item.value.propval? item.value.propval: 'No Property'}))
+        .filter(item => !(params.min_length && item.sequence.length < params.min_length)
+                        ||(params.max_length && item.sequence.length > params.max_length))
+        .groupBy(['sequence', 'property'], mixpanel.reducer.count())
+        .groupBy([item => item.key[item.key.length - 1]], theTop(params.num_results))
+        .map(mapToFinalResult);
+    }
+}
   	</script>
   	<div class="mixpanel-platform-section" style='width:919px'>
   	<table>
