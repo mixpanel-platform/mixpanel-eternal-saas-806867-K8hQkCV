@@ -311,7 +311,6 @@ function main() {
 			var props =[];
 			var propCounts = {};
 			var flows = [];
-			//var color_indexes = [0,1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9];
 			_.each(res, function(flow) {
 				_.each(_.keys(flow), function(prop) {
 					if (!_.contains(props, prop))
@@ -333,7 +332,6 @@ function main() {
 			_.each(res, function(flow, key) {
 				var fl = {};
 				fl.name = key;
-				//fl._colorIndex = color_indexes.pop();
 				fl.data = [];
 				_.each(props, function(prop) {
 					fl.data.push(flow[prop].percentage)
