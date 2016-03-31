@@ -281,13 +281,15 @@ function main() {
 				if (results.length > 0) {
 					_.each(results, function(res_for_prop) {
 						var propval = res_for_prop.key.property + ' (' + res_for_prop.key.count + ')';
-						r[propval] = _.map(res_for_prop.value, function(seq) {
-							return seq.count + ' (' + Math.round(seq.percentage) + '%): ' + sequenceMapper(seq.sequence);
+						r[propval] = _(params.num_results).times(() => ('--'));
+						_.each(res_for_prop.value, function(seq, i) {
+							r[propval][i] = seq.count + ' (' + Math.round(seq.percentage) + '%): ' + sequenceMapper(seq.sequence);
 						});
 						r[propval].unshift('');
 						delete r[propval][0];
 					});
 				}
+				debugger;
 			    eventTable.MPTable('setData', r);
 			});
 		}
