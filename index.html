@@ -379,7 +379,7 @@ function main() {
 			            dataLabels: {
 			                enabled: true,
 			                formatter: function(){
-			                    if (this.point.shapeArgs.height < 10)
+			                    if (this.point.shapeArgs.height < 13)
 			                        return '';
 			                    return Math.round(this.y * propMappings[this.key] * .01);
 			                },
