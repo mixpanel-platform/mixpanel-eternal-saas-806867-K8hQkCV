@@ -210,7 +210,7 @@ function main() {
     <script>
 		var script = document.getElementById('query').innerHTML;
 		var stackedGraph = $('#graph').MPChart({chartType: 'bar', stacked: true, normalized: true});
-		var eventTable = $('#table').MPTable({showPercentages: false, firstColHeader: 'Rank'});
+		var eventTable = $('#table').MPTable({showPercentages: false, firstColHeader: 'Property'});
 		var dateSelect = $('#dateSelect').MPDatepicker();
 		var items = function() {return item_list = _.map(arguments, function(item) {return {label: String(item), value: item};})};
 		var time_length = $('#timeSelect').MPSelect({items: items(1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30)});
@@ -245,6 +245,10 @@ function main() {
 			    'bad_events': ['$campaign_delivery', '$campaign_marked_spam', '$campaign_bounced', '$campaign_open', '$experiment_started']
 			};
 			MP.api.custom_query(script, params).done(function(results) {
+              	results = _.chain(results)
+              			   .sortBy(item => -1 * item.key.count)
+              			   .first(12)
+              			   .value();
 				var sequenceMapper = function(sequence) {
 						var seq = '';
 						_.each(sequence, function(item, index) {
@@ -272,21 +276,18 @@ function main() {
 						graphRes[flow][prop] = graphRes[flow][prop]? graphRes[flow][prop] : {count: 0, percentage: 0};
 					});
 				});
-				if (results.length > 0) {
-					res = _(params.num_results).times(() => ({}));
-					var resultMapper = function(item) {
-		                var propval = item.key.property + ' (' + item.key.count + ')';
-		                _.each(res, function(val, i) {
-		                	val[propval] = item.value[i]? item.value[i].count + ' (' + (Math.round(10 * item.value[i].percentage) / 10) + '%): ' + sequenceMapper(item.value[i].sequence) : '--';
-		                });
-		            };
-		            _.each(results, resultMapper);
-		            console.log(res);
-					res.unshift('');
-					delete res[0];
-				}
 				stackedGraph.highcharts(getChartOptions(graphRes, propTotals));
-			    eventTable.MPTable('setData', res);
+				var r = {};
+				_.each(results, function(res_for_prop) {
+					var propval = res_for_prop.key.property + ' (' + res_for_prop.key.count + ')';
+					r[propval] = _.map(res_for_prop.value, function(seq) {
+						return seq.count + ' (' + Math.round(seq.percentage) + '%): ' + sequenceMapper(seq.sequence);
+					});
+					r[propval].unshift('');
+					delete r[propval][0];
+				});
+
+			    eventTable.MPTable('setData', r);
 			});
 		}
 		MP.api.query('/api/2.0/engage/properties').done(function(json) {
@@ -358,7 +359,6 @@ function main() {
 			    },
 			    yAxis: {
 			        min: 0,
-			        max: 100,
 			        title: {text: ''},
 			        endOnTick: false,
 			        maxPadding: 0.0,
@@ -368,9 +368,10 @@ function main() {
 			    legend: {enabled: false},
 			    tooltip: {
 			        formatter: function () {
-			            return this.series.name + ': ' + Math.round(this.y) + '%<br/>' +
-			                'Total: ' + Math.round(propMappings[this.x]) + '<br/>' +
-			                'Property: ' + this.x;
+			        	return 'Property: ' + this.key + '<br/>' +
+			        		   'Sequence: ' + this.series.name + '<br/>' +
+			        		   'Percentage: ' + Math.round(this.y) + '<br/>' +
+			        		   'Count: ' + Math.round(this.y * propMappings[this.key] * .01) + '<br/>';
 			        }
 			    },
 			    plotOptions: {
@@ -385,7 +386,8 @@ function main() {
 			                },
 			                color: (Highcharts.theme && Highcharts.theme.dataLabelsColor) || 'white'
 			            }
-			        }
+			        },
+			        series: {pointWidth : 60}
 			    },
 			    series: flows
 			};
