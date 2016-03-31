@@ -278,15 +278,16 @@ function main() {
 				});
 				stackedGraph.highcharts(getChartOptions(graphRes, propTotals));
 				var r = {};
-				_.each(results, function(res_for_prop) {
-					var propval = res_for_prop.key.property + ' (' + res_for_prop.key.count + ')';
-					r[propval] = _.map(res_for_prop.value, function(seq) {
-						return seq.count + ' (' + Math.round(seq.percentage) + '%): ' + sequenceMapper(seq.sequence);
+				if (results.length > 0) {
+					_.each(results, function(res_for_prop) {
+						var propval = res_for_prop.key.property + ' (' + res_for_prop.key.count + ')';
+						r[propval] = _.map(res_for_prop.value, function(seq) {
+							return seq.count + ' (' + Math.round(seq.percentage) + '%): ' + sequenceMapper(seq.sequence);
+						});
+						r[propval].unshift('');
+						delete r[propval][0];
 					});
-					r[propval].unshift('');
-					delete r[propval][0];
-				});
-
+				}
 			    eventTable.MPTable('setData', r);
 			});
 		}
