@@ -60,8 +60,11 @@ function createState(state, items) {
         if (state.active && !state.done && (params.end_event&&!params.start_event || !state.start_time || event.time - params.conversion_length <= state.start_time)) {
             state.sequence.push({name: event.name, time: event.time});
             state.start_time = state.start_time? state.start_time : event.time;
-            state.propval = params.people_prop? event.properties[params.people_prop] : event.properties[params.property];
             state.done = event.name == params.end_event;
+            if (params.people_prop && event.properties[params.people_prop])
+            	state.propval = event.properties[params.people_prop];
+            else if (params.property && event.properties[params.property])
+            	state.propval = event.properties[params.property];
         }
         if (state.start_time 
            && !state.done
