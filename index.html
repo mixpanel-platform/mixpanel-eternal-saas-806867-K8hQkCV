@@ -146,8 +146,8 @@ function main() {
                             .pluck('name')
                             .value(),
                   property: item.value.propval? item.value.propval: 'No Property'}))
-        .filter(item => !(params.min_length && item.sequence.length < params.min_length)
-                        ||(params.max_length && item.sequence.length > params.max_length))
+        .filter(item => !((params.min_length && item.sequence.length < params.min_length)
+                        ||(params.max_length && item.sequence.length > params.max_length)))
         .groupBy(['sequence', 'property'], mixpanel.reducer.count())
         .groupBy([item => item.key[item.key.length - 1]], theTop(params.num_results))
         .map(mapToFinalResult);
