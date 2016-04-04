@@ -133,7 +133,7 @@ function main() {
                             .filter(event => item.value.sequence[item.value.sequence.length - 1].time - event.time < params.conversion_length)
                             .pluck('name')
                             .value(),
-                  property: item.value.propval? item.value.propval: 'No Property'}))
+                  property: item.value.propval? item.value.propval: '(No Property)'}))
         .filter(item => (!params.start_event || item.sequence[0] == params.start_event) && !((params.min_length && item.sequence.length < params.min_length)
                         ||(params.max_length && item.sequence.length > params.max_length)))
         .groupBy(['sequence', 'property'], mixpanel.reducer.count())
@@ -148,7 +148,7 @@ function main() {
                             .filter(event => item.value.sequence[item.value.sequence.length - 1].time - event.time < params.conversion_length)
                             .pluck('name')
                             .value(),
-                  property: item.value.propval? item.value.propval: 'No Property'}))
+                  property: item.value.propval? item.value.propval: '(No Property)'}))
         .filter(item => (!params.start_event || item.sequence[0] == params.start_event) && !((params.min_length && item.sequence.length < params.min_length)
                         ||(params.max_length && item.sequence.length > params.max_length)))
         .groupBy(['sequence', 'property'], mixpanel.reducer.count())
