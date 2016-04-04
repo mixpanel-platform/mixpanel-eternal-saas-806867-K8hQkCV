@@ -385,7 +385,7 @@ function main() {
 			                formatter: function(){
 			                    if (this.point.shapeArgs.height < 13)
 			                        return '';
-			                    return Math.round(this.y);// * propMappings[this.key] * .01);
+			                    return Math.round(this.y) + '%';
 			                },
 			                color: (Highcharts.theme && Highcharts.theme.dataLabelsColor) || 'white'
 			            }
