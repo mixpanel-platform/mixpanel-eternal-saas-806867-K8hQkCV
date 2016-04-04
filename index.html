@@ -282,7 +282,7 @@ function main() {
 						var propval = res_for_prop.key.property + ' (' + res_for_prop.key.count + ')';
 						r[propval] = _(params.num_results).times(() => ('--'));
 						_.each(res_for_prop.value, function(seq, i) {
-							r[propval][i] = seq.count + ' (' + Math.round(seq.percentage) + '%): ' + sequenceMapper(seq.sequence);
+							r[propval][i] = seq.count + ' (' + Math.round(seq.percentage * 10) / 10 + '%): ' + sequenceMapper(seq.sequence);
 						});
 						r[propval].unshift('');
 						delete r[propval][0];
@@ -373,7 +373,7 @@ function main() {
 			        formatter: function () {
 			        	return 'Property: ' + this.key + '<br/>' +
 			        		   'Sequence: ' + this.series.name + '<br/>' +
-			        		   'Percentage: ' + Math.round(this.y) + '<br/>' +
+			        		   'Percentage: ' + Math.round(this.y * 10) / 10 + '<br/>' +
 			        		   'Count: ' + Math.round(this.y * propMappings[this.key] * .01) + '<br/>';
 			        }
 			    },
@@ -385,7 +385,7 @@ function main() {
 			                formatter: function(){
 			                    if (this.point.shapeArgs.height < 13)
 			                        return '';
-			                    return Math.round(this.y) + '%';
+			                    return Math.round(this.y * 10) / 10 + '%';
 			                },
 			                color: (Highcharts.theme && Highcharts.theme.dataLabelsColor) || 'white'
 			            }
