@@ -49,7 +49,7 @@
       }
     </style>
     <script id='query'>
-var bad_events = [];//['$campaign_delivery', '$campaign_marked_spam', '$campaign_bounced', '$campaign_open', '$experiment_started', '$show_survey'];
+var bad_events = []; //['$campaign_delivery', '$campaign_marked_spam', '$campaign_bounced', '$campaign_open', '$experiment_started', '$show_survey'];
 
 function createUserState(state, items) {
   state = state || {sequence: []};
@@ -68,7 +68,7 @@ function createUserState(state, items) {
         var sequence_of_events = _.pluck(state.sequence, 'name');
         if (!params.end_event)
           state.done = true;
-        else if (params.end_event && _.contains(sequence_of_events, params.end_event)) {
+        else if (params.end_event && _.contains(_.last(sequence_of_events, sequence_of_events.length - 1), params.end_event)) {
           state.done = true;
           state.sequence = _.first(state.sequence, _.lastIndexOf(sequence_of_events, params.end_event) + 1);
         }
