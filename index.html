@@ -66,11 +66,12 @@ function createUserState(state, items) {
                       event.properties[params.people_prop] : state.property;
       if (params.start_event && params.start_event == state.sequence[0].name && state.sequence.length >= params.min_length) {
         var sequence_of_events = _.pluck(state.sequence, 'name');
+        var chopped_sequence = _.contains(sequence_of_events, params.end_event)? _.first(state.sequence, _.lastIndexOf(sequence_of_events, params.end_event) + 1) : [];
         if (!params.end_event)
           state.done = true;
-        else if (params.end_event && _.contains(_.last(sequence_of_events, sequence_of_events.length - 1), params.end_event)) {
+        else if (params.end_event && chopped_sequence.length >= params.min_length) {
           state.done = true;
-          state.sequence = _.first(state.sequence, _.lastIndexOf(sequence_of_events, params.end_event) + 1);
+          state.sequence = chopped_sequence;
         }
       }
       else if (!params.start_event && params.end_event && event.name == params.end_event && state.sequence.length >= params.min_length) {
