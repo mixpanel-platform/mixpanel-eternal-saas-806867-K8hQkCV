@@ -49,7 +49,7 @@
       }
     </style>
     <script id='query'>
-var bad_events = []; //['$campaign_delivery', '$campaign_marked_spam', '$campaign_bounced', '$campaign_open', '$experiment_started', '$show_survey'];
+var bad_events = [];//['$campaign_delivery', '$campaign_marked_spam', '$campaign_bounced', '$campaign_open', '$experiment_started', '$show_survey'];
 
 function createUserState(state, items) {
   state = state || {sequence: []};
@@ -130,7 +130,7 @@ function main() {
     return join(Events({from_date: params.from_date, to_date: params.to_date}), People())
     .filter(item => item.event)
     .groupByUser(createUserState)
-    .filter(state => state.value.done && state.value.sequence.length >= params.min_length)
+    .filter(state => state.value.done || (!params.start_event && !params.end_event && state.value.sequence.length >= params.min_length))
     .map(item => ({sequence: _.pluck(item.value.sequence, 'name'),
                   property: item.value.property? item.value.property: 'No Property'}))
     .groupBy(['sequence', 'property'], mixpanel.reducer.count())
@@ -140,7 +140,7 @@ function main() {
   else {
     return Events({from_date: params.from_date, to_date: params.to_date})
     .groupByUser(createUserState)
-    .filter(state => state.value.done && state.value.sequence.length >= params.min_length)
+    .filter(state => state.value.done || (!params.start_event && !params.end_event && state.value.sequence.length >= params.min_length))
     .map(item => ({sequence: _.pluck(item.value.sequence, 'name'),
                   property: item.value.property? item.value.property: 'No Property'}))
     .groupBy(['sequence', 'property'], mixpanel.reducer.count())
