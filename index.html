@@ -1,3 +1,11 @@
+<!-- 
+
+This is not a Mixpanel product, nor has it gone through a formal review process.
+Please be careful making any decisions based on this code; we are not responsible for the results.
+
+-->
+
+
 <html>
   <head>
     <meta charset="utf-8">
@@ -213,8 +221,8 @@ function main() {
     var max_sequence_length = $('#maxLengthSelect').MPSelect({items: items(1,2,3,4,5,6,7,8,9,10)});
     min_sequence_length.val(2);
     max_sequence_length.val(6);
-    var max_results = $('#numResultsSelect').MPSelect({items: items(3, 5, 10, 15, 50)});
-    max_results.val(5);
+    var max_results = $('#numResultsSelect').MPSelect({items: items(4, 9, 20, 50)});
+    max_results.val(4);
     var start_event = $('#startEventSelect').MPEventSelect();
     var finish_event = $('#eventSelect').MPEventSelect();
     function runQuery() {
