@@ -210,12 +210,25 @@ function main() {
     <div id="table" style='width:943px'></div>
     <script>
     var script = document.getElementById('query').innerHTML;
+    // initialize report graph
     var stackedGraph = $('#graph').MPChart({chartType: 'bar', stacked: true, normalized: true});
+    // initialize table
     var eventTable = $('#table').MPTable({showPercentages: false, firstColHeader: 'Property'});
+    // initialize dropdowns
     var dateSelect = $('#dateSelect').MPDatepicker();
     var items = function() {return item_list = _.map(arguments, function(item) {return {label: String(item), value: item};})};
+    // time dropdowns
+    var msPerHour = 60*60*1000;
+    var timeUnitItems = {
+      items:[
+        {label:'hours',value: msPerHour},
+        {label:'days',value: msPerHour*24}, // 24 hours in a day
+        {label:'weeks',value: msPerHour*24*7}, // 24 hours in a day, 7 days in a week
+        {label:'months',value: msPerHour*24*30} // 24 hours in a day, 30 days in a month
+        ]
+    }
     var time_length = $('#timeSelect').MPSelect({items: items(1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30)});
-    var time_unit = $('#unitSelect').MPSelect({items:[{label:'hours',value:3600000},{label:'days',value:86400000},{label:'weeks',value:604800000},{label:'months',value:2592000000}]});
+    var time_unit = $('#unitSelect').MPSelect(timeUnitItems);
     time_unit.val(86400000);
     var min_sequence_length = $('#minLengthSelect').MPSelect({items: items(1,2,3,4,5,6,7,8,9,10)});
     var max_sequence_length = $('#maxLengthSelect').MPSelect({items: items(1,2,3,4,5,6,7,8,9,10)});
@@ -225,10 +238,12 @@ function main() {
     max_results.val(5);
     var start_event = $('#startEventSelect').MPEventSelect();
     var finish_event = $('#eventSelect').MPEventSelect();
-    function runQuery() {
       $('.select_button:not(#eventSelect > .select_button, #propSelect > .select_button, #startEventSelect > .select_button, #peoplePropSelect > .select_button)').addClass('small');
       $('.select_menu:not(#eventSelect > .select_menu, #propSelect > .select_menu, #startEventSelect > .select_menu, #peoplePropSelect > .select_menu)').addClass('small');
       $('#numResultsSelect, #minLengthSelect, #timeSelect, #unitSelect, #maxLengthSelect').css({'display': 'inline-block', 'max-width': '50px'})
+    function runQuery() {
+      // clean this (laura)
+      // grab parameter values from dropdowns
       var params = {
           'from_date': dateSelect.MPDatepicker('value').from.toISOString().slice(0, -14),
           'to_date': dateSelect.MPDatepicker('value').to.toISOString().slice(0, -14),
@@ -241,15 +256,18 @@ function main() {
       };
       var prop = property.MPSelect('value');
       if (prop) {
+        // if property value was selected, do something xyz
         var prop_type = prop.indexOf('people') == -1? 'property' : 'people_prop';
         params[prop_type] = prop_type == 'people_prop'? prop.substr(8, prop.length) : prop;
       }
-      MP.api.custom_query(script, params).done(function(results) {
+      MP.api.jql(script, params).done(function(results) {
+        // when JQL returns
         console.log(results);
-                results = _.chain(results)
-                       .sortBy(item => -1 * item.key.count)
-                       .first(12)
-                       .value();
+        // transform xyz
+        results = _.chain(results)
+               .sortBy(item => -1 * item.key.count)
+               .first(12)
+               .value();
         var sequenceMapper = function(sequence) {
             var seq = '';
             _.each(sequence, function(item, index) {
@@ -267,6 +285,7 @@ function main() {
         _.each(results, function(item) {
           propVals.push(item.key.property);
           _.each(item.value, function(seq, index) {
+            // for each value, add the thing to the new object
             var sequence = sequenceMapper(seq.sequence);
             graphRes[sequence] = graphRes[sequence] || {};
             graphRes[sequence][item.key.property] = {count:seq.count, percentage: seq.percentage};
