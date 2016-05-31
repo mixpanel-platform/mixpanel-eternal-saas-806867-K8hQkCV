@@ -68,7 +68,7 @@ Please be careful making any decisions based on this report.
         state = state || {sequence: []};
 
         //function to run for each event the user has done
-        function stateUpdater(event) {
+        var stateUpdater = function(event) {
 
           //if we aren't done finding a flow matching all of the parameters, run this logic
           if (!state.done) {
