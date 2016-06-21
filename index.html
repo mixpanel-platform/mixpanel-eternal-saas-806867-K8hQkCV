@@ -54,11 +54,11 @@ Please be careful making any decisions based on this report.
       }
     </style>
     <script id='query'>
-
+    
       //list of events to ignore in flow sequences, the below will ignore nothing
       var badEvents = [];
       
-      //can comment or uncomment the line below to ignore all "passive" events
+      //can uncomment the line below to ignore all "passive" events
 
       badEvents = ['$campaign_delivery', '$campaign_marked_spam', '$campaign_bounced', '$campaign_open', '$experiment_started', '$show_survey'];
 
@@ -163,7 +163,7 @@ Please be careful making any decisions based on this report.
 
           //needs to return a custom function so that we can use the value of n and also use .groupBy
           return function(accumulators, items) {
-            
+
               //initialize count to 0
               var count = 0;
 
@@ -228,62 +228,34 @@ Please be careful making any decisions based on this report.
 
       function main() {
 
-        //if there's a people property in the params, we need to run a join
-        if (params.peopleProp) {
+        //create query that either gets only event data or joins, depending on whether people data is necessary
+        var query = params.peopleProp?
+                      join(Events({from_date: params.fromDate, to_date: params.toDate}), People()).filter(item => item.event):
+                      Events({from_date: params.fromDate, to_date: params.toDate});
 
-          //grab all event/user combinations
-          return join(Events({from_date: params.fromDate, to_date: params.toDate}), People())
-          
-          //filter out all event/user combinations without events (so user profiles with no events in the time range)
-          .filter(item => item.event)
+        //return the query and some transformations
+        return query
 
-          //run createUserState function on all users (this will first organize all of the items above into groups based on distinct_id, then will apply the function on each item, guaranteeing time-order)
-          .groupByUser(createUserState)
+        //run createUserState function on all users (this will first organize all of the items above into groups based on distinct_id, then will apply the function on each item, guaranteeing time-order)
+        .groupByUser(createUserState)
 
-          //filter out all user states that don't have sequences matching the parameters of the query
-          .filter(state => state.value.done || (!params.startEvent && !params.endEvent && state.value.sequence.length >= params.minLength))
-          
-          //simplify user states to a single object with a sequence key whose value is an array of event names and a property key whose value is the relevant property for the user or 'No Property' if there's no valid property
-          .map(item => ({sequence: _.pluck(item.value.sequence, 'name'),
-                        property: item.value.property? item.value.property: 'No Property'}))
+        //filter out all user states that don't have sequences matching the parameters of the query
+        .filter(state => state.value.done || (!params.startEvent && !params.endEvent && state.value.sequence.length >= params.minLength))
 
-          //organize user states by common sequence/property combinations and count the frequency of each combination
-          .groupBy([item => item.sequence, item => item.property], mixpanel.reducer.count())
+        //simplify user states to a single object with a sequence key whose value is an array of event names and a property key whose value is the relevant property for the user or 'No Property' if there's no valid property
+        .map(item => ({sequence: _.pluck(item.value.sequence, 'name'),
+                      property: item.value.property? item.value.property: 'No Property'}))
 
-          //organize the sequence/property/count objects above by their common properties, then apply custom reducer theTop to each property grouping, finding the top n results for each property, where n is params.numResults
-          .groupBy([item => item.key[item.key.length - 1]], theTop(params.numResults))
+        //organize user states by common sequence/property combinations and count the frequency of each combination
+        .groupBy([item => item.sequence, item => item.property], mixpanel.reducer.count())
 
-          //clean up the results from above so the result is easier to manipulate
-          .map(mapToFinalResult);
-        }
+        //organize the sequence/property/count objects above by their common properties, then apply custom reducer theTop to each property grouping, finding the top n results for each property, where n is params.numResults
+        .groupBy([item => item.key[item.key.length - 1]], theTop(params.numResults))
 
-        //if there is no people property in the params, we don't need any people data (this should be faster)
-        else {
-
-          //grab all events
-          return Events({from_date: params.fromDate, to_date: params.toDate})
-
-          //run createUserState function on all users (this will first organize all of the items above into groups based on distinct_id, then will apply the function on each item, guaranteeing time-order)
-          .groupByUser(createUserState)
-
-          //filter out all user states that don't have sequences matching the parameters of the query
-          .filter(state => state.value.done || (!params.startEvent && !params.endEvent && state.value.sequence.length >= params.minLength))
-
-          //simplify user states to a single object with a sequence key whose value is an array of event names and a property key whose value is the relevant property for the user or 'No Property' if there's no valid property
-          .map(item => ({sequence: _.pluck(item.value.sequence, 'name'),
-                        property: item.value.property? item.value.property: 'No Property'}))
-
-          //organize user states by common sequence/property combinations and count the frequency of each combination
-          .groupBy([item => item.sequence, item => item.property], mixpanel.reducer.count())
-
-          //organize the sequence/property/count objects above by their common properties, then apply custom reducer theTop to each property grouping, finding the top n results for each property, where n is params.numResults
-          .groupBy([item => item.key[item.key.length - 1]], theTop(params.numResults))
-
-          //clean up the results from above so the result is easier to manipulate
-          .map(mapToFinalResult);
-        }
+        //clean up the results from above so the result is easier to manipulate
+        .map(mapToFinalResult);
       }
-
+      
     </script>
     <div class="mixpanel-platform-section" style='width:919px'>
     <table>
